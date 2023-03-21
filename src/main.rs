@@ -4,11 +4,17 @@
 
 #[cfg(test)] mod tests;
 
+
 #[get("/")]
-fn hello() -> &'static str {
+fn index() -> &'static str {
     "Hello, world!"
 }
 
+#[get("/fix?<msg>")]
+fn fix(msg: String) -> String {
+    format!("Hello, {msg}!")
+}
+
 fn main() {
-    rocket::ignite().mount("/", routes![hello]).launch();
+    rocket::ignite().mount("/", routes![index, fix]).launch();
 }

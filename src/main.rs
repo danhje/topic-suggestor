@@ -1,9 +1,11 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-#![feature(const_fn_trait_bound)]
-
 #[macro_use] extern crate rocket;
 
-#[cfg(test)] mod tests;
+extern crate dotenv;
+
+use dotenv::dotenv;
+use std::env;
+
+
 
 
 #[get("/")]
@@ -12,22 +14,16 @@ fn index() -> &'static str {
 }
 
 #[get("/fix?<msg>")]
-fn fix(msg: String) -> String {
-    println!("Hello, {msg}!");
-
+async fn fix(msg: String) -> String {
+    dotenv().ok();
     let prompt = "Tell me a fun fact about technology.";
-
-    let headers = {
-        let mut headers = HeaderMap::new();
-        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", &api_key)).unwrap());
-        headers
-    };
-
     let client = reqwest::Client::new();
+
+    //https://stackoverflow.com/questions/47911513/how-do-i-set-the-request-headers-using-reqwest
     let response = client
         .post("https://api.openai.com/v1/completions")
-        .headers(headers)
+        .header("Content-Type", "application/json")
+        .header("Authorization", &format!("Bearer {}", env::var("API_KEY").unwrap()))
         .json(&serde_json::json!({
             "model": "text-davinci-003",
             "prompt": prompt,
@@ -37,15 +33,15 @@ fn fix(msg: String) -> String {
         .send()
         .await
         .unwrap()
-        .json::<OpenAIResponse>()
+        .text()  // Use json()
         .await
         .unwrap();
 
-    response.choices[0].text.clone()
+    println!("{:?}", response);
+    String::from(msg)
 }
 
-#[tokio::main]
-async fn main() {
-    rocket::ignite().mount("/", routes![index, fix]).launch();
-
+#[launch]
+fn rocket() -> _ {
+    rocket::build().mount("/", routes![index, fix])
 }

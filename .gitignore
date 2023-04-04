@@ -1,2 +1,4 @@
 /target/
-.en
+.env
+/.vscode/
+/.idea/

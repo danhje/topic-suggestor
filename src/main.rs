@@ -1,47 +1,29 @@
-#[macro_use] extern crate rocket;
+use rocket::{get, routes, launch};
 
-extern crate dotenv;
-
-use dotenv::dotenv;
-use std::env;
-
-
+mod fs;
+mod fetch;
 
 
 #[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
+fn index() -> String {
+    fs::read_topics("topics.txt").join("\n")
 }
 
-#[get("/fix?<msg>")]
-async fn fix(msg: String) -> String {
-    dotenv().ok();
-    let prompt = "Tell me a fun fact about technology.";
-    let client = reqwest::Client::new();
 
-    //https://stackoverflow.com/questions/47911513/how-do-i-set-the-request-headers-using-reqwest
-    let response = client
-        .post("https://api.openai.com/v1/completions")
-        .header("Content-Type", "application/json")
-        .header("Authorization", &format!("Bearer {}", env::var("API_KEY").unwrap()))
-        .json(&serde_json::json!({
-            "model": "text-davinci-003",
-            "prompt": prompt,
-            "max_tokens": 7,
-            "temperature": 0
-          }))
-        .send()
-        .await
-        .unwrap()
-        .text()  // Use json()
-        .await
-        .unwrap();
+#[get("/pop")]
+fn pop() -> String {
+    fs::pop_topic("topics.txt").unwrap()
+}
 
-    println!("{:?}", response);
-    String::from(msg)
+
+#[get("/extend")]
+async fn extend() -> String {
+    let new_suggestions = fetch::parse_suggestions(fetch::fetch_new_suggestions().await);
+    fs::append_topics(&new_suggestions, "topics.txt").unwrap();
+    "Fetched the following topics, which have been added to the list of upcoming topics: \n\n".to_string() + &new_suggestions.join("\n")
 }
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, fix])
+    rocket::build().mount("/", routes![index, pop, extend])
 }

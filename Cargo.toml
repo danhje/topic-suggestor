@@ -1,5 +1,5 @@
 [package]
-name = "hello_world"
+name = "topic_suggestor"
 version = "0.0.0"
 publish = false
 edition = "2021"

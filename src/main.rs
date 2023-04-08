@@ -4,17 +4,21 @@ extern crate dotenv;
 
 use dotenv::dotenv;
 use std::env;
+use rocket::State;
 
 
+struct Data {
+    topics: String
+}
 
 
 #[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
+fn index(data: &State<Data>) -> &str {
+    &data.topics
 }
 
-#[get("/fix?<msg>")]
-async fn fix(msg: String) -> String {
+#[get("/fetch")]
+async fn fetch(data: &State<Data>) -> String {
     dotenv().ok();
     let prompt = "Tell me a fun fact about technology.";
     let client = reqwest::Client::new();
@@ -38,10 +42,12 @@ async fn fix(msg: String) -> String {
         .unwrap();
 
     println!("{:?}", response);
-    String::from(msg)
+    String::from("Hello, world!")
 }
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, fix])
+    rocket::build()
+        .mount("/", routes![index, fetch])
+        .manage(Data { topics: "Topic 1".to_string() })
 }

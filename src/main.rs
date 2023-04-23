@@ -1,11 +1,7 @@
-#[macro_use] extern crate rocket;
-
-extern crate dotenv;
-
 use dotenv::dotenv;
 use std::env;
 use std::sync::Mutex;
-use rocket::State;
+use rocket::{State, get, routes, launch};
 use serde::Deserialize;
 
 
@@ -73,7 +69,7 @@ async fn fetch_new_suggestions() -> String {
 fn parse_suggestions(suggestions: String) -> Vec<String> {
     suggestions
         .lines()
-        .map(|s| s.strip_prefix("-").unwrap().trim().to_string())
+        .map(|s| s.strip_prefix('-').unwrap().trim().to_string())
         .collect()
 }
 
@@ -97,10 +93,12 @@ async fn fetch(data: &State<DataMutex>) -> String {
 
 #[launch]
 fn rocket() -> _ {
+    fs::say_hi();
+
     rocket::build()
         .mount("/", routes![index, fetch])
         .manage(Mutex::new(Data {
-            upcoming_topics: vec!["Topic 1".to_string()],
-            recent_topics: vec!["Topic 2".to_string()],
+            upcoming_topics: vec![],
+            recent_topics: vec![],
         }))
 }

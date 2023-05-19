@@ -1,7 +1,6 @@
-use std::env;
 use dotenv::dotenv;
 use serde::Deserialize;
-
+use std::env;
 
 const MODEL_CONTEXT_LENGTH: usize = 2048;
 const PROMPT: &str = r#"
@@ -21,7 +20,6 @@ that relate to data science or electrical power transmission. Here are the 20 mo
 - One TLA you learned this week.
 "#;
 
-
 #[derive(Debug, Deserialize)]
 struct Choice {
     text: String,
@@ -29,9 +27,8 @@ struct Choice {
 
 #[derive(Debug, Deserialize)]
 struct Response {
-    choices: Vec<Choice>
+    choices: Vec<Choice>,
 }
-
 
 pub async fn fetch_new_suggestions() -> String {
     dotenv().ok();
@@ -39,14 +36,17 @@ pub async fn fetch_new_suggestions() -> String {
     let response: Response = client
         .post("https://api.openai.com/v1/completions")
         .header("Content-Type", "application/json")
-        .header("Authorization", &format!("Bearer {}", env::var("API_KEY").unwrap()))
+        .header(
+            "Authorization",
+            &format!("Bearer {}", env::var("OPENAI_API_KEY").unwrap()),
+        )
         .json(&serde_json::json!({
-            "model": "text-davinci-003",
-            "prompt": PROMPT,
-            "max_tokens": MODEL_CONTEXT_LENGTH-PROMPT.len(),
-            "temperature": 1.0,
-            "presence_penalty": 1.0,  // To avoid repetition, like every suggestion ending with "this week"
-          }))
+          "model": "text-davinci-003",
+          "prompt": PROMPT,
+          "max_tokens": MODEL_CONTEXT_LENGTH-PROMPT.len(),
+          "temperature": 1.0,
+          "presence_penalty": 1.0,  // To avoid repetition, like every suggestion ending with "this week"
+        }))
         .send()
         .await
         .unwrap()

@@ -11,8 +11,8 @@ fn index() -> String {
 
 
 #[get("/pop")]
-fn pop() -> String {
-    fs::pop_topic("topics.txt").unwrap()
+async fn pop() -> String {
+    fs::pop_topic("topics.txt", true).await.unwrap()
 }
 
 

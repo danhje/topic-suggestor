@@ -1,4 +1,3 @@
-use dotenv::dotenv;
 use serde::Deserialize;
 use std::env;
 
@@ -30,15 +29,14 @@ struct Response {
     choices: Vec<Choice>,
 }
 
-pub async fn fetch_new_suggestions() -> String {
-    dotenv().ok();
+pub async fn fetch_new_topics() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
-    let response: Response = client
+    let response = client
         .post("https://api.openai.com/v1/completions")
         .header("Content-Type", "application/json")
         .header(
             "Authorization",
-            &format!("Bearer {}", env::var("OPENAI_API_KEY").unwrap()),
+            &format!("Bearer {}", env::var("OPENAI_API_KEY")?),
         )
         .json(&serde_json::json!({
           "model": "text-davinci-003",
@@ -48,17 +46,15 @@ pub async fn fetch_new_suggestions() -> String {
           "presence_penalty": 1.0,  // To avoid repetition, like every suggestion ending with "this week"
         }))
         .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
-
-    response.choices[0].text.clone()
+        .await?;
+    let body = response.text().await?;
+    let response: Response = serde_json::from_str(&body)?;
+    let topics = parse_response(response.choices[0].text.clone());
+    Ok(topics)
 }
 
-pub fn parse_suggestions(suggestions: String) -> Vec<String> {
-    suggestions
+fn parse_response(response_text: String) -> Vec<String> {
+    response_text
         .lines()
         .map(|s| s.strip_prefix('-').unwrap().trim().to_string())
         .collect()

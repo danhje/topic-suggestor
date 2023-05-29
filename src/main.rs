@@ -1,33 +1,41 @@
-use rocket::{get, launch, routes};
+use rocket::{get, routes};
 
 mod email;
 mod fetch;
 mod fs;
 
+const TOPICS_PATH: &str = "topics.txt";
+
 #[get("/")]
 fn index() -> String {
-    fs::read_topics("topics.txt").join("\n")
+    fs::read_topics(TOPICS_PATH).join("\n")
 }
 
-#[get("/pop")]
-async fn pop() -> String {
-    // fs::pop_topic("topics.txt", true).await.unwrap()
-    match email::send().await {
-        Ok(_) => "Sent email".to_string(),
-        Err(e) => format!("Error sending email: {}", e),
+#[get("/send")]
+async fn send() -> String {
+    match fs::pop_topic(TOPICS_PATH) {
+        Some(topic) => match email::send(&topic).await {
+            Ok(_) => format!("Sent email with topic: {}", topic),
+            Err(e) => format!("Error sending email: {}", e),
+        },
+        None => "No topics left to send".to_owned(),
     }
 }
 
 #[get("/extend")]
 async fn extend() -> String {
-    let new_suggestions = fetch::parse_suggestions(fetch::fetch_new_suggestions().await);
-    fs::append_topics(&new_suggestions, "topics.txt").unwrap();
-    "Fetched the following topics, which have been added to the list of upcoming topics: \n\n"
-        .to_string()
-        + &new_suggestions.join("\n")
+    fs::top_up_topics(TOPICS_PATH).await;
+    "Done".to_owned()
 }
 
-#[launch]
-fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, pop, extend])
+#[rocket::main]
+async fn main() {
+    dotenv::dotenv().ok();
+    fs::top_up_topics(TOPICS_PATH).await;
+    email::spawn_send_task();
+    rocket::build()
+        .mount("/", routes![index, send, extend])
+        .launch()
+        .await
+        .expect("Failed to launch Rocket instance");
 }

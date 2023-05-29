@@ -47,8 +47,13 @@ pub async fn pop_topic(path: &str, top_up: bool) -> std::io::Result<String> {
 pub async fn top_up_topics(path: &str) -> std::io::Result<()> {
     let topics = read_topics(path);
     if topics.len() < MIN_TOPICS {
-        let new_suggestions = fetch::parse_suggestions(fetch::fetch_new_suggestions().await);
-        append_topics(&new_suggestions, path).unwrap();
+        match fetch::fetch_new_suggestions().await {
+            Ok(suggestions) => {
+                let new_suggestions = fetch::parse_suggestions(suggestions);
+                append_topics(&new_suggestions, path).unwrap();
+            }
+            Err(e) => println!("Error fetching new suggestions: {}", e),
+        }
     }
     Ok(())
 }

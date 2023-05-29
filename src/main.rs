@@ -20,11 +20,16 @@ async fn pop() -> String {
 
 #[get("/extend")]
 async fn extend() -> String {
-    let new_suggestions = fetch::parse_suggestions(fetch::fetch_new_suggestions().await);
-    fs::append_topics(&new_suggestions, "topics.txt").unwrap();
-    "Fetched the following topics, which have been added to the list of upcoming topics: \n\n"
-        .to_string()
-        + &new_suggestions.join("\n")
+    match fetch::fetch_new_suggestions().await {
+        Ok(suggestions) => {
+            let new_suggestions = fetch::parse_suggestions(suggestions);
+            fs::append_topics(&new_suggestions, "topics.txt").unwrap();
+            "Fetched the following topics, which have been added to the list of upcoming topics: \n\n"
+                .to_string()
+                + &new_suggestions.join("\n")
+        }
+        Err(e) => format!("Error fetching new suggestions: {}", e),
+    }
 }
 
 #[launch]

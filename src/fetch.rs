@@ -30,15 +30,15 @@ struct Response {
     choices: Vec<Choice>,
 }
 
-pub async fn fetch_new_suggestions() -> String {
+pub async fn fetch_new_suggestions() -> Result<String, Box<dyn std::error::Error>> {
     dotenv().ok();
     let client = reqwest::Client::new();
-    let response: Response = client
+    let response = client
         .post("https://api.openai.com/v1/completions")
         .header("Content-Type", "application/json")
         .header(
             "Authorization",
-            &format!("Bearer {}", env::var("OPENAI_API_KEY").unwrap()),
+            &format!("Bearer {}", env::var("OPENAI_API_KEY")?),
         )
         .json(&serde_json::json!({
           "model": "text-davinci-003",
@@ -48,13 +48,11 @@ pub async fn fetch_new_suggestions() -> String {
           "presence_penalty": 1.0,  // To avoid repetition, like every suggestion ending with "this week"
         }))
         .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
-
-    response.choices[0].text.clone()
+        .await?;
+    let body = response.text().await?;
+    println!("Body: {}", body);
+    let response: Response = serde_json::from_str(&body)?;
+    Ok(response.choices[0].text.clone())
 }
 
 pub fn parse_suggestions(suggestions: String) -> Vec<String> {

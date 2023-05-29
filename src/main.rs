@@ -9,12 +9,14 @@ fn index() -> String {
     fs::read_topics("topics.txt").join("\n")
 }
 
-#[get("/pop")]
-async fn pop() -> String {
-    // fs::pop_topic("topics.txt", true).await.unwrap()
-    match email::send().await {
-        Ok(_) => "Sent email".to_string(),
-        Err(e) => format!("Error sending email: {}", e),
+#[get("/send")]
+async fn send() -> String {
+    match fs::pop_topic("topics.txt", true).await {
+        Ok(topic) => match email::send(&topic).await {
+            Ok(_) => format!("Sent email with topic: {}", topic),
+            Err(e) => format!("Error sending email: {}", e),
+        },
+        Err(e) => format!("Error popping topic: {}", e),
     }
 }
 
@@ -34,5 +36,5 @@ async fn extend() -> String {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, pop, extend])
+    rocket::build().mount("/", routes![index, send, extend])
 }

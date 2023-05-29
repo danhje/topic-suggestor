@@ -1,6 +1,7 @@
 use std::env;
 
-pub async fn send() -> Result<(), Box<dyn std::error::Error>> {
+/// Send an email with the specified body using SendGrid.
+pub async fn send(body: &str) -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
     let client = reqwest::Client::new();
     let response = client
@@ -14,9 +15,9 @@ pub async fn send() -> Result<(), Box<dyn std::error::Error>> {
             "personalizations": [{
                 "to": [{"email": env::var("RECIPIENT")?}],
             }],
-            "subject": "Hello from Rust",
+            "subject": "Topic for today's standup",
             "from": {"email": env::var("SENDER")?},
-            "content": [{"type": "text/plain", "value": "Hello, world!"}]
+            "content": [{"type": "text/plain", "value": &format!("Today's topic: {}", &body)}]
         }))
         .send()
         .await?;

@@ -46,6 +46,7 @@ pub async fn pop_topic(path: &str, top_up: bool) -> std::io::Result<String> {
 /// Ensure there are enough topics stored in the file.
 pub async fn top_up_topics(path: &str) -> std::io::Result<()> {
     let topics = read_topics(path);
+
     if topics.len() < MIN_TOPICS {
         match fetch::fetch_new_suggestions().await {
             Ok(suggestions) => {
@@ -55,6 +56,7 @@ pub async fn top_up_topics(path: &str) -> std::io::Result<()> {
             Err(e) => println!("Error fetching new suggestions: {}", e),
         }
     }
+
     Ok(())
 }
 

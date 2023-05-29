@@ -1,5 +1,6 @@
 use rocket::{get, launch, routes};
 
+mod email;
 mod fetch;
 mod fs;
 
@@ -10,7 +11,11 @@ fn index() -> String {
 
 #[get("/pop")]
 async fn pop() -> String {
-    fs::pop_topic("topics.txt", true).await.unwrap()
+    // fs::pop_topic("topics.txt", true).await.unwrap()
+    match email::send().await {
+        Ok(_) => "Sent email".to_string(),
+        Err(e) => format!("Error sending email: {}", e),
+    }
 }
 
 #[get("/extend")]

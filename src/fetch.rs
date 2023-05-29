@@ -38,7 +38,7 @@ pub async fn fetch_new_suggestions() -> String {
         .header("Content-Type", "application/json")
         .header(
             "Authorization",
-            &format!("Bearer {}", env::var("API_KEY").unwrap()),
+            &format!("Bearer {}", env::var("OPENAI_API_KEY").unwrap()),
         )
         .json(&serde_json::json!({
           "model": "text-davinci-003",

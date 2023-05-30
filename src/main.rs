@@ -1,4 +1,4 @@
-use rocket::{get, launch, routes};
+use rocket::{get, routes};
 
 mod email;
 mod fetch;
@@ -34,7 +34,12 @@ async fn extend() -> String {
     }
 }
 
-#[launch]
-fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, send, extend])
+#[rocket::main]
+async fn main() {
+    email::spawn_send_task();
+    rocket::build()
+        .mount("/", routes![index, send, extend])
+        .launch()
+        .await
+        .expect("Failed to launch Rocket instance");
 }

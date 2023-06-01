@@ -30,8 +30,11 @@ struct Response {
 }
 
 pub async fn fetch_new_suggestions() -> Result<String, Box<dyn std::error::Error>> {
-    dotenv::dotenv()?;
+    println!("0");
+    dotenv::dotenv().ok();
+    println!("1");
     let client = reqwest::Client::new();
+    println!("2");
     let response = client
         .post("https://api.openai.com/v1/completions")
         .header("Content-Type", "application/json")
@@ -48,8 +51,11 @@ pub async fn fetch_new_suggestions() -> Result<String, Box<dyn std::error::Error
         }))
         .send()
         .await?;
+    println!("3");
     let body = response.text().await?;
+    println!("4");
     let response: Response = serde_json::from_str(&body)?;
+    println!("5");
     Ok(response.choices[0].text.clone())
 }
 

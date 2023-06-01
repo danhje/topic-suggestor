@@ -1,4 +1,3 @@
-use dotenv::dotenv;
 use serde::Deserialize;
 use std::env;
 
@@ -31,7 +30,7 @@ struct Response {
 }
 
 pub async fn fetch_new_suggestions() -> Result<String, Box<dyn std::error::Error>> {
-    dotenv().ok();
+    dotenv::dotenv()?;
     let client = reqwest::Client::new();
     let response = client
         .post("https://api.openai.com/v1/completions")
@@ -50,7 +49,6 @@ pub async fn fetch_new_suggestions() -> Result<String, Box<dyn std::error::Error
         .send()
         .await?;
     let body = response.text().await?;
-    println!("Body: {}", body);
     let response: Response = serde_json::from_str(&body)?;
     Ok(response.choices[0].text.clone())
 }

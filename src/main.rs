@@ -18,24 +18,20 @@ async fn send() -> String {
             Ok(_) => format!("Sent email with topic: {}", topic),
             Err(e) => format!("Error sending email: {}", e),
         },
-        None => format!("No topics left to send"),
+        None => "No topics left to send".to_owned(),
     }
 }
 
 #[get("/extend")]
 async fn extend() -> String {
-    match fs::top_up_topics(TOPICS_PATH).await {
-        Ok(()) => format!("Successfully topped up topics"),
-        Err(e) => format!("Error fetching new suggestions: {}", e),
-    }
+    fs::top_up_topics(TOPICS_PATH).await;
+    "Done".to_owned()
 }
 
 #[rocket::main]
 async fn main() {
-    match fs::top_up_topics(TOPICS_PATH).await {
-        Ok(()) => println!("Successfully topped up topics"),
-        Err(e) => println!("Error fetching new suggestions: {}", e),
-    }
+    dotenv::dotenv().ok();
+    fs::top_up_topics(TOPICS_PATH).await;
     email::spawn_send_task();
     rocket::build()
         .mount("/", routes![index, send, extend])

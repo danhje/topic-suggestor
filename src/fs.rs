@@ -23,7 +23,7 @@ pub fn append_topics(topics: &[String], path: &str) -> std::io::Result<()> {
         .into_iter()
         .collect::<HashSet<_>>()
         .into_iter() // To remove duplicates
-        .filter(|s| s.len() > 0) // Remove empty strings
+        .filter(|s| !s.is_empty()) // Remove empty strings
         .collect::<Vec<String>>();
 
     fs::write(path, concatenated.join("\n").as_str())
@@ -48,20 +48,19 @@ pub fn pop_topic(path: &str) -> Option<String> {
 }
 
 /// Ensure there are enough topics stored in the file.
-pub async fn top_up_topics(path: &str) -> std::io::Result<()> {
-    println!("Topping up topics");
-    let topics = read_topics(path);
-
-    if topics.len() < MIN_TOPICS {
-        println!("Running low on topics, fetching new suggestions");
-        match fetch::fetch_new_suggestions().await {
-            Ok(suggestions) => {
-                let new_suggestions = fetch::parse_suggestions(suggestions);
-                append_topics(&new_suggestions, path).unwrap();
-            }
-            Err(e) => println!("Error fetching new suggestions: {}", e),
-        }
+pub async fn top_up_topics(path: &str) {
+    if read_topics(path).len() >= MIN_TOPICS {
+        return;
     }
 
-    Ok(())
+    println!("Running low on topics, fetching more");
+    match fetch::fetch_new_topics().await {
+        Ok(new_topics) => {
+            match append_topics(&new_topics, path) {
+                Ok(_) => println!("Successfully topped up topics"),
+                Err(e) => println!("Error appending new topics to file: {}", e),
+            };
+        }
+        Err(e) => println!("Error fetching new topics: {}", e),
+    }
 }

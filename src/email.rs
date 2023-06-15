@@ -5,8 +5,8 @@ use std::env;
 use std::str::FromStr;
 use std::time::Duration;
 
+/// Spawn a task that sends an email at the specified cron schedule.
 pub fn spawn_send_task() {
-    dotenv::dotenv().ok();
     let cron_schedule = env::var("CRON_SCHEDULE").expect("CRON_SCHEDULE not set");
     tokio::task::spawn(async move {
         for datetime in Schedule::from_str(&cron_schedule)
@@ -14,11 +14,7 @@ pub fn spawn_send_task() {
             .upcoming(Utc)
         {
             let duration = datetime - Utc::now();
-            println!(
-                "Next email is scheduled for {} ({} seconds from now)",
-                datetime,
-                duration.num_seconds()
-            );
+            println!("Next email is scheduled for {}", datetime);
             tokio::time::sleep(Duration::from_secs(duration.num_seconds() as u64)).await;
 
             match super::fs::pop_topic(super::TOPICS_PATH) {
@@ -34,7 +30,6 @@ pub fn spawn_send_task() {
 
 /// Send an email with the specified body using SendGrid.
 pub async fn send(body: &str) -> Result<(), Box<dyn std::error::Error>> {
-    dotenv::dotenv().ok();
     reqwest::Client::new()
         .post("https://api.sendgrid.com/v3/mail/send")
         .header("Content-Type", "application/json")

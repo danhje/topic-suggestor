@@ -1,8 +1,8 @@
 use rocket::{get, routes};
 
-mod email;
 mod fetch;
 mod fs;
+mod notify;
 
 const TOPICS_PATH: &str = "topics.txt";
 
@@ -14,7 +14,7 @@ fn index() -> String {
 #[get("/send")]
 async fn send() -> String {
     match fs::pop_topic(TOPICS_PATH) {
-        Some(topic) => match email::send(&topic).await {
+        Some(topic) => match notify::send(&topic).await {
             Ok(_) => format!("Sent email with topic: {}", topic),
             Err(e) => format!("Error sending email: {}", e),
         },
@@ -32,7 +32,7 @@ async fn extend() -> String {
 async fn main() {
     dotenv::dotenv().ok();
     fs::top_up_topics(TOPICS_PATH).await;
-    email::spawn_send_task();
+    notify::spawn_send_task();
     rocket::build()
         .mount("/", routes![index, send, extend])
         .launch()

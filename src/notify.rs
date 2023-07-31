@@ -5,7 +5,7 @@ use std::env;
 use std::str::FromStr;
 use std::time::Duration;
 
-/// Spawn a task that sends an email at the specified cron schedule.
+/// Spawn a task that sends a notification about the next topic at the specified cron schedule.
 pub fn spawn_send_task() {
     let cron_schedule = env::var("CRON_SCHEDULE").expect("CRON_SCHEDULE not set");
     tokio::task::spawn(async move {
@@ -28,24 +28,27 @@ pub fn spawn_send_task() {
     });
 }
 
-/// Send an email with the specified body using SendGrid.
+/// Send a Teams MessageCard to a Teams channel webhook with the specified body.
 pub async fn send(body: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let card = serde_json::json!({
+        "@type": "MessageCard",
+        "@context": "http://schema.org/extensions",
+        "themeColor": "0076D7",
+        "summary": "Today's standup topic",
+        "sections": [{
+            "activityTitle": "Today's standup topic",
+            "activitySubtitle": body,
+            "activityImage": "https://centerstage-theater.com/wp-content/uploads/sites/4/2019/05/stand-up-comedy-neon-sign.jpg",
+            "facts": [],
+            "markdown": true
+        }]
+    });
+
     reqwest::Client::new()
-        .post("https://api.sendgrid.com/v3/mail/send")
-        .header("Content-Type", "application/json")
-        .header(
-            "Authorization",
-            &format!("Bearer {}", env::var("SENDGRID_API_KEY")?),
-        )
-        .json(&serde_json::json!({
-            "personalizations": [{
-                "to": [{"email": env::var("RECIPIENT")?}],
-            }],
-            "subject": "Topic for today's standup",
-            "from": {"email": env::var("SENDER")?},
-            "content": [{"type": "text/plain", "value": &format!("Today's topic: {}", &body)}]
-        }))
+        .post(env::var("WEBHOOK_URL")?)
+        .json(&card)
         .send()
         .await?;
+
     Ok(())
 }

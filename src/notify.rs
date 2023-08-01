@@ -1,3 +1,4 @@
+use crate::fetch;
 use chrono::Utc;
 use cron::Schedule;
 use rocket::tokio;
@@ -14,13 +15,13 @@ pub fn spawn_send_task() {
             .upcoming(Utc)
         {
             let duration = datetime - Utc::now();
-            println!("Next email is scheduled for {}", datetime);
+            println!("Next notification is scheduled for {}", datetime);
             tokio::time::sleep(Duration::from_secs(duration.num_seconds() as u64)).await;
 
             match super::fs::pop_topic(super::TOPICS_PATH) {
                 Some(topic) => match send(&topic).await {
-                    Ok(_) => println!("Sent email with topic: {}", topic),
-                    Err(e) => println!("Error sending email: {}", e),
+                    Ok(_) => println!("Sent notification with topic: {}", topic),
+                    Err(e) => println!("Error sending notification: {}", e),
                 },
                 None => println!("No topics left to send"),
             };
@@ -36,19 +37,24 @@ pub async fn send(body: &str) -> Result<(), Box<dyn std::error::Error>> {
         "themeColor": "0076D7",
         "summary": "Today's standup topic",
         "sections": [{
-            "activityTitle": "Today's standup topic",
-            "activitySubtitle": body,
-            "activityImage": "https://centerstage-theater.com/wp-content/uploads/sites/4/2019/05/stand-up-comedy-neon-sign.jpg",
-            "facts": [],
+            "activityTitle": body,
             "markdown": true
+        }, {
+            "images": [{
+                "image": fetch::fetch_image(body).await?,
+            }]
         }]
     });
 
-    reqwest::Client::new()
+    println!("Sending card: {:?}", card);
+
+    let response = reqwest::Client::new()
         .post(env::var("WEBHOOK_URL")?)
         .json(&card)
         .send()
         .await?;
+
+    println!("Response: {:?}", response.text().await?);
 
     Ok(())
 }

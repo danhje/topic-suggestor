@@ -25,7 +25,7 @@ struct Choice {
 }
 
 #[derive(Debug, Deserialize)]
-struct Response {
+struct CompletionResponse {
     choices: Vec<Choice>,
 }
 
@@ -48,7 +48,7 @@ pub async fn fetch_new_topics() -> Result<Vec<String>, Box<dyn std::error::Error
         .send()
         .await?;
     let body = response.text().await?;
-    let response: Response = serde_json::from_str(&body)?;
+    let response: CompletionResponse = serde_json::from_str(&body)?;
     let topics = parse_response(response.choices[0].text.clone());
     Ok(topics)
 }
@@ -58,4 +58,36 @@ fn parse_response(response_text: String) -> Vec<String> {
         .lines()
         .map(|s| s.strip_prefix('-').unwrap().trim().to_string())
         .collect()
+}
+
+#[derive(Debug, Deserialize)]
+struct Url {
+    url: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ImageGenerationResponse {
+    data: Vec<Url>,
+}
+
+pub async fn fetch_image(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let client = reqwest::Client::new();
+    let response = client
+        .post("https://api.openai.com/v1/images/generations")
+        .header("Content-Type", "application/json")
+        .header(
+            "Authorization",
+            &format!("Bearer {}", env::var("OPENAI_API_KEY")?),
+        )
+        .json(&serde_json::json!({
+          "prompt": prompt,
+          "n": 1,
+          "size": "512x512",
+        }))
+        .send()
+        .await?;
+    let body = response.text().await?;
+    let response: ImageGenerationResponse = serde_json::from_str(&body)?;
+    let url = response.data[0].url.clone();
+    Ok(url)
 }

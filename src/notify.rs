@@ -29,24 +29,36 @@ pub fn spawn_send_task() {
     });
 }
 
-/// Send a Teams MessageCard to a Teams channel webhook with the specified body.
+/// Send an AdaptiveCard to a Teams channel webhook with the specified body and an auto-generated image.
 pub async fn send(body: &str) -> Result<(), Box<dyn std::error::Error>> {
     let image_name = fetch::fetch_image(body).await?;
     let image_url = format!("https://rocket-hello-world-57nl.onrender.com/img/{image_name}");
 
     let card = serde_json::json!({
-        "@type": "MessageCard",
-        "@context": "http://schema.org/extensions",
-        "themeColor": "0076D7",
-        "summary": "Today's standup topic",
-        "sections": [{
-            "activityTitle": body,
-            "markdown": true
-        }, {
-            "images": [{
-                "image": image_url,
-            }]
-        }]
+       "type":"message",
+       "attachments":[
+          {
+             "contentType": "application/vnd.microsoft.card.adaptive",
+             "contentUrl": null,
+             "content": {
+                "type": "AdaptiveCard",
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "version": "1.0",
+                "action": "type",
+                "body": [
+                    {
+                        "type": "TextBlock",
+                        "text": body,
+                        "wrap": true,
+                    },
+                    {
+                        "type": "Image",
+                        "url": image_url,
+                    }
+                ]
+            }
+          }
+       ]
     });
 
     println!("Sending card: {:?}", card);

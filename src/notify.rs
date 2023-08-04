@@ -31,6 +31,9 @@ pub fn spawn_send_task() {
 
 /// Send a Teams MessageCard to a Teams channel webhook with the specified body.
 pub async fn send(body: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let image_name = fetch::fetch_image(body).await?;
+    let image_url = format!("https://rocket-hello-world-57nl.onrender.com/img/{image_name}");
+
     let card = serde_json::json!({
         "@type": "MessageCard",
         "@context": "http://schema.org/extensions",
@@ -41,7 +44,7 @@ pub async fn send(body: &str) -> Result<(), Box<dyn std::error::Error>> {
             "markdown": true
         }, {
             "images": [{
-                "image": fetch::fetch_image(body).await?,
+                "image": image_url,
             }]
         }]
     });

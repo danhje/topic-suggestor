@@ -1,3 +1,4 @@
+use color_eyre::eyre::Result;
 use rocket::{get, routes};
 
 mod fetch;
@@ -33,21 +34,24 @@ async fn pop() -> String {
     fs::pop_topic(TOPICS_PATH).unwrap_or("Failed to get topic".to_owned())
 }
 
-#[get("/img/<prompt>")]
-async fn img(prompt: String) -> String {
+#[get("/generate/<prompt>")]
+async fn generate(prompt: String) -> String {
     fetch::fetch_image(&prompt)
         .await
-        .unwrap_or("Failed to fetch image".to_owned())
+        .unwrap_or("Failed to download image".to_owned())
 }
 
 #[rocket::main]
-async fn main() {
+async fn main() -> Result<()> {
+    color_eyre::install()?;
     dotenv::dotenv().ok();
     fs::top_up_topics(TOPICS_PATH).await;
     notify::spawn_send_task();
     rocket::build()
-        .mount("/", routes![index, send, extend, pop, img])
+        .mount("/", routes![index, send, extend, pop, generate])
+        .mount("/img", rocket::fs::FileServer::from("/var/img"))
         .launch()
         .await
         .expect("Failed to launch Rocket instance");
+    Ok(())
 }

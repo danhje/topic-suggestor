@@ -70,6 +70,7 @@ struct ImageGenerationResponse {
     data: Vec<Url>,
 }
 
+/// Download image and return its name.
 pub async fn fetch_image(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
     let response = client
@@ -89,5 +90,19 @@ pub async fn fetch_image(prompt: &str) -> Result<String, Box<dyn std::error::Err
     let body = response.text().await?;
     let response: ImageGenerationResponse = serde_json::from_str(&body)?;
     let url = response.data[0].url.clone();
-    Ok(url)
+
+    let parsed_url_path = reqwest::Url::parse(&url)?;
+    let path = std::path::Path::new(parsed_url_path.path());
+    let filename = path
+        .file_name()
+        .ok_or("Failed to extract filename")?
+        .to_str()
+        .ok_or("Failed to convert to str")?;
+
+    let mut file = std::fs::File::create(format!("/var/img/{filename}"))?;
+    let response = client.get(&url).send().await?;
+    let mut content = std::io::Cursor::new(response.bytes().await?);
+    std::io::copy(&mut content, &mut file)?;
+
+    Ok(filename.to_string())
 }
